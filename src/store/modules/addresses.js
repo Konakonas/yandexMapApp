@@ -16,6 +16,7 @@ export default {
   state: {
     currentAddress: '',
     currentCoords: '',
+    mkadCoords: '',
     currentDistance: 0,
     addresses: [],
   },
@@ -25,6 +26,7 @@ export default {
         history: state.addresses,
         currentAddress: state.currentAddress,
         currentCoords: state.currentCoords,
+        mkadCoord: state.mkadCoords,
       };
     },
   },

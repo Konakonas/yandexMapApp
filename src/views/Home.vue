@@ -30,6 +30,7 @@
 <script>
 import { yandexMap, loadYmap } from 'vue-yandex-maps';
 import { mapGetters, mapMutations } from 'vuex';
+// import { mapKeys } from 'lodash';
 import mkadArray from './mkad';
 
 export default {
@@ -45,6 +46,7 @@ export default {
         contentOffset: [0, 0],
       },
       polygon: mkadArray.map((i) => i.reverse()),
+      mkadCoords: [],
     };
   },
   methods: {
@@ -53,7 +55,7 @@ export default {
     onClick(e) {
       this.coords = e.get('coords');
       this.mounted(this.coords);
-      console.log(this.closestPoint());
+      this.getDistance(this.coords, this.mkadCoords);
       return true;
     },
     async mounted() {
@@ -76,46 +78,81 @@ export default {
         });
     },
     closestPoint() {
-      let minJ = 100000;
+      // eslint-disable-next-line no-unused-vars
+      let minJ = 0;
       let minDelta = 10000000;
       const currentPoint = this.coords;
+      const distanceArray = [];
+      // const result = [];
       this.polygon.forEach((elem, key) => {
+        // eslint-disable-next-line no-cond-assign
+        // if (minDelta === 10000000) {
+        // console.log(currentPoint[0].toFixed(6), '   ';
         const r = 6371;
-        const dLat = (currentPoint[0] - elem[0]) * (Math.PI / 180);
-        const dLon = (currentPoint[1] - elem[1]) * (Math.PI / 180);
+        const dLat = (currentPoint[0].toFixed(6) - elem[0]) * (Math.PI / 180);
+        const dLon = (currentPoint[1].toFixed(6) - elem[1]) * (Math.PI / 180);
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
             + Math.cos(elem[0] * (Math.PI / 180)) * Math.cos(currentPoint[0] * (Math.PI / 180))
             * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        // const delta = (mkadPoints[j][0] - this.coords[0])
-        //            * (mkadPoints[j][0] - this.coords[0])
-        //            + (mkadPoints[j][1] - this.coords[1]) * (mkadPoints[j][1] - this.coords[1]);
+          // const delta = (mkadPoints[j][0] - this.coords[0])
+          //            * (mkadPoints[j][0] - this.coords[0])
+          //            + (mkadPoints[j][1] - this.coords[1]) * (mkadPoints[j][1] - this.coords[1]);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const d = r * c; // Distance in km
         if (d < minDelta) {
           minJ = key;
           minDelta = d;
         }
-        console.log(d);
+        distanceArray.unshift({ coord: this.polygon[key], distance: d.toFixed(4) });
       });
-      return minJ;
+      distanceArray.sort((f, s) => Number(Object.keys(f)[0]) - Number(Object.keys(s)[0]));
+      distanceArray.unshift({ coord: this.polygon[minJ], distance: minDelta.toFixed(4) });
+      this.mkadCoords = this.polygon[minJ];
+      return {
+        del: minDelta.toFixed(4),
+        dot: this.polygon[minJ],
+        firstDots: distanceArray.slice(0, 3),
+      };
     },
-
-    CalcDistanceBetween(lat1, lon1, lat2, lon2) {
-      // Radius of the earth in:  1.609344 miles,  6371 km  | var R = (6371 / 1.609344);
-      const R = 6371; // Radius of earth in Miles
-      const dLat = this.toRad(lat2 - lat1);
-      const dLon = this.toRad(lon2 - lon1);
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-      + Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2))
-      * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = R * c;
-      alert(`d==${d}`);
-      return d;
+    async getDistance(start, finish) {
+      await loadYmap({ debug: true })
+        .then(() => {
+          // eslint-disable-next-line no-undef
+          ymaps.route([
+            start, finish,
+          ], {
+            mapStateAutoApply: true,
+          }).then((route) => {
+            route.getPaths().options.set({
+              // балун показывает только информацию о времени в пути с трафиком
+              // eslint-disable-next-line no-undef
+              balloonContentLayout: ymaps.templateLayoutFactory.createClass('{{ properties.humanJamsTime }}'),
+              // вы можете настроить внешний вид маршрута
+              strokeColor: '0000ffff',
+              opacity: 0.9,
+            });
+            // добавляем маршрут на карту
+            map.geoObjects.add(route);
+          });
+        });
     },
-    toRad(Value) {
-      return (Value * Math.PI) / 180;
-    },
+    //
+    // CalcDistanceBetween(lat1, lon1, lat2, lon2) {
+    //   // Radius of the earth in:  1.609344 miles,  6371 km  | var R = (6371 / 1.609344);
+    //   const R = 6371; // Radius of earth in Miles
+    //   const dLat = this.toRad(lat2 - lat1);
+    //   const dLon = this.toRad(lon2 - lon1);
+    //   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    //   + Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2))
+    //   * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    //   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    //   const d = R * c;
+    //   alert(`d==${d}`);
+    //   return d;
+    // },
+    // toRad(Value) {
+    //   return (Value * Math.PI) / 180;
+    // },
     /* getPolygon() {
       const mkadPoints = mkadArray;
       await loadYmap({ debug: true })
