@@ -37,6 +37,7 @@ export default {
       coords: [],
       polygon: mkadArray.map((i) => i.reverse()),
       globalMap: null,
+      route: null,
     };
   },
   methods: {
@@ -83,6 +84,29 @@ export default {
     setRoute(e, closestDistance) {
       const selectPoint = sortBy(closestDistance, 'distance')[0];
       // eslint-disable-next-line no-undef
+      ymaps.route([e.get('coords'), selectPoint.coords]).then((router) => {
+        const distance = router.getLength();
+        console.log(distance);
+        /* message = '<span>Расстояние: ' + _this.distance + 'км.</span><br/>' +
+            '<span>Время в пути: ' +  _this.secToTime(_this.routeTime) + '.</span><br/>' ; */
+
+        console.log('dfdfdf');
+        console.log('info', this.route);
+        console.log(this.globalMap);
+
+        if (this.route) this.globalMap.geoObjects.remove(this.route);
+        this.route = router.getPaths();
+        this.route.options.set({ strokeWidth: 5, strokeColor: '227f05', opacity: 0.7 });
+        this.globalMap.geoObjects.add(this.route);
+
+        /* _this.end_point.properties.set('iconContent',  _this.distance + ' км.');
+        _this.end_point.properties.set('balloonContentBody', _this.address + message); */
+      }, (error) => {
+        console.log(error);
+        // alert('Возникла ошибка: ' + error.message);
+      });
+      /* const selectPoint = sortBy(closestDistance, 'distance')[0];
+      // eslint-disable-next-line no-undef
       const multiRoute = new ymaps.multiRouter.MultiRoute({
         referencePoints: [
           e.get('coords'),
@@ -94,7 +118,7 @@ export default {
       }, {
         boundsAutoApply: true,
       });
-      this.globalMap.geoObjects.add(multiRoute);
+      this.globalMap.geoObjects.add(multiRoute); */
     },
 
   },
