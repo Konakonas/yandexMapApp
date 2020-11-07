@@ -17,9 +17,12 @@
           marker-type="polygon"
           :coords="[polygon,[]]"
           circle-radius="16000"
-          :marker-fill="{color: '#1890ff', opacity: 0.4}"
+          :marker-fill="{color: '#1890ff', opacity: opt}"
           :marker-stroke="{color: '#1890ff', width: 1}"
           :balloon="{header: 'header', body: 'body', footer: 'footer'}"
+          @click="onClick"
+          @mouseenter="debounce(opt = 0.1,1000)"
+          @mouseleave="debounce(opt = 0.4,1000)"
       ></ymap-marker>
     </yandex-map>
   </div>
@@ -27,13 +30,14 @@
 
 <script>
 import { yandexMap, loadYmap, ymapMarker } from 'vue-yandex-maps';
-import { sortBy } from 'lodash';
+import { sortBy, debounce } from 'lodash';
 import mkadArray from './mkad';
 
 export default {
   components: { yandexMap, ymapMarker },
   data() {
     return {
+      opt: 0.4,
       coords: [],
       polygon: mkadArray.map((i) => i.reverse()),
       globalMap: null,
@@ -41,6 +45,7 @@ export default {
     };
   },
   methods: {
+    debounce,
 
     onClick(e) {
       console.log(e);
