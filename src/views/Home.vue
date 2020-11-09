@@ -19,7 +19,6 @@
               circle-radius="16000"
               :marker-fill="{color: '#1890ff', opacity: opt}"
               :marker-stroke="{color: '#1890ff', width: 1}"
-              :balloon="{header: 'header', body: 'body', footer: 'footer'}"
               @click="onClick"
       ></ymap-marker>
     </yandex-map>
@@ -37,6 +36,7 @@ export default {
     return {
       opt: 0.4,
       coords: [],
+      address: null,
       polygon: mkadArray,
       globalMap: null,
       route: null,
@@ -47,6 +47,8 @@ export default {
     debounce,
     async onClick(e) {
       this.coords = e.get('coords');
+      this.getAdress();
+      console.log(e);
       const closestDistance = await this.getClosestDistance(e);
       this.setRoute(e, closestDistance);
       return true;
@@ -58,6 +60,15 @@ export default {
     /* - */
     async geocoder() {
       await loadYmap();
+    },
+    /* - */
+    async getAdress() {
+      // eslint-disable-next-line no-undef
+      ymaps.geocode(this.coords)
+        .then((res) => {
+          this.address = res.geoObjects.get(0)
+            .getAddressLine();
+        });
     },
     /* - */
     getClosestDistance(e) {
