@@ -1,7 +1,7 @@
 <template>
   <div>
     <yandex-map
-            zoom="12"
+            :zoom="zoom"
             style="width: 100%; max-width: 100%; height: 98vh;"
             :coords= "coords.length ? coords : [55.7521833, 37.613614]"
             @click="onClick"
@@ -41,6 +41,8 @@ export default {
       globalMap: null,
       route: null,
       airRoute: null,
+      zoom: 12,
+      points: 5,
     };
   },
   methods: {
@@ -49,11 +51,11 @@ export default {
       this.coords = e.get('coords');
       this.getAdress();
       console.log(e);
-      const closestDistance = await this.getClosestDistance(e);
+      const closestDistance = await this.сalcClosestDistance(e);
       this.setRoute(e, closestDistance);
       return true;
     },
-    /* - */
+    /* сохранение карты в переменную */
     initMap(map) {
       this.globalMap = map;
     },
@@ -61,7 +63,7 @@ export default {
     async geocoder() {
       await loadYmap();
     },
-    /* - */
+    /* получение адреса по координатам */
     async getAdress() {
       // eslint-disable-next-line no-undef
       ymaps.geocode(this.coords)
@@ -70,8 +72,8 @@ export default {
             .getAddressLine();
         });
     },
-    /* - */
-    getClosestDistance(e) {
+    /* расчет ближайшего расстояния по воздуху */
+    сalcClosestDistance(e) {
       const currentPoint = e.get('coords');
       const object = [];
       this.polygon.forEach(async (coords) => {
@@ -88,20 +90,23 @@ export default {
       });
       return object;
     },
-    async getDistance(e, coords) {
+    /* расчет ближайшего расстояния по земле */
+    async calcDistance(e, coords) {
       // eslint-disable-next-line no-undef
       const dis = await ymaps.route([e.get('coords'), coords]);
       return dis.getLength();
     },
+    /* расчет путей */
     setRoute(e, distances) {
       const selected = sortBy(distances, 'distance');
-      const count = 5;
+      const count = this.points;
       this.getDistProccess(selected.slice(0, count), e);
     },
+    /* выбор ближайших точек для расчета по воздуху и земле */
     async getDistProccess(selected, e) {
       const promises = [];
       selected.forEach((point) => {
-        promises.push(this.getDistance(e, point.coords));
+        promises.push(this.calcDistance(e, point.coords));
       });
       await Promise.all(promises).then((res) => {
         let min = 0;
@@ -118,6 +123,7 @@ export default {
         this.routeAirDistance(e, selected[0]);
       });
     },
+    /* создание маршрута по земле */
     routeCarDistance(e, select) {
       // eslint-disable-next-line no-undef
       ymaps.route([e.get('coords'), select.coords]).then((router) => {
@@ -127,6 +133,7 @@ export default {
         this.globalMap.geoObjects.add(this.route);
       });
     },
+    /* создание маршрута по воздуху */
     routeAirDistance(e, select) {
       // eslint-disable-next-line no-undef
       const myGeoObject = new ymaps.GeoObject({
@@ -134,13 +141,10 @@ export default {
           type: 'LineString',
           coordinates: [e.get('coords'), select.coords],
         },
-      }, {
-        strokeColor: '#000000',
-        strokeWidth: 4,
-        strokeStyle: '1 5',
       });
       if (this.airRoute) this.globalMap.geoObjects.remove(this.airRoute);
       this.airRoute = myGeoObject;
+      this.airRoute.set({ strokeColor: '#000000', strokeWidth: 4, strokeStyle: '1 5' });
       this.globalMap.geoObjects.add(this.airRoute);
     },
   },
